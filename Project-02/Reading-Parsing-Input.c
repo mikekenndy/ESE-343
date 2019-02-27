@@ -48,25 +48,18 @@ struct command *finder(struct command* prev, char CMD[LONGEST_CMD_LEN])
 // Finds commands in a string
 char *findCMDs(char input[])
 {
-  char *result[BUFFERSIZE];
+  static char result[BUFFERSIZE];
   int loc = 0;
 
   char *ptr = strstr(input, "echo ");
   if(ptr == NULL)
-    printf("no echo found");
+    printf("\nno echo found");
   else
     {
-      /* result[loc] = "  echo"; */
-      /* loc += 6; */
+      strcpy(result, *result + "  echo");
     }
 
-  result[0] = "echo1";
-  result[1] = " echo2";
-
-  printf("result is %s", result);
-  printf("\n");
-  
-  return *result;
+  return result;
 }
 
 
@@ -105,9 +98,10 @@ int main()
 	 strstr(buff, "xterm & ") != NULL ||
 	 strstr(buff, "cd") != NULL)
 	{
-	  char *foundCMD = findCMDs(buff);	 
+	  char *foundCMD = findCMDs(buff);
+	  printf("\nCommands: %s", foundCMD);
 	} else {
-	printf("Command '%s' not found", buff);
+	printf("\nCommand '%s' not found", buff);
       }
     }
 
