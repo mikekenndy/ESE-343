@@ -7,6 +7,21 @@
 #define BUFFERSIZE 500
 #define LONGEST_CMD_LEN 7
 
+// Linked-list object containing:
+// commandName - name of command entered into terminal
+// argument - argument following command
+// *next - pointer to next object in list
+struct command
+{
+  char commandName[LONGEST_CMD_LEN];
+  char argument[BUFFERSIZE];
+  struct command *nextCMD;
+};
+
+// Creat command head for linked list
+struct command *head;
+
+
 // Greeting
 void init_shell()
 {
@@ -18,17 +33,8 @@ void init_shell()
   char* username = getenv("USER");
   printf("\n\nUSER is: @%s", username);
   printf("\n");
+
 }
-
-
-// Linked-list object containing:
-// commandName - name of command entered into terminal
-// *next - pointer to next object in list
-struct command
-{
-  char commandName[LONGEST_CMD_LEN];
-  struct command *nextCMD;
-};
 
 
 // Adds newest command to linked list
@@ -44,6 +50,47 @@ struct command *finder(struct command* prev, char CMD[LONGEST_CMD_LEN])
   return found;
 }
 
+// Add command to linked list
+void addToList(char cmd[LONGEST_CMD_LEN], char input[BUFFERSIZE])
+{  
+  // Find argument after command
+  char *c = strstr(input, cmd);
+  char arg[BUFFERSIZE];
+  int i = strlen(cmd) + 1;
+  int j = 0;
+  while(c[i] != '\0' && c[i] != '|')
+    {
+      arg[j] = c[i];
+      i++;
+      j++;
+    }
+
+  // Create object
+  struct command *add;
+  add = (struct command *)malloc(sizeof(struct command));
+  
+  strcpy(add->commandName, cmd);
+  strcpy(add->argument, arg);
+  /* // Check whether head was initialized */
+  if(head == NULL)
+    head = add;
+  else
+    {
+      struct command *cursor;
+      cursor = (struct command *)malloc(sizeof(struct command));
+      cursor = head;
+      printf("\nafter that");
+      while(cursor->nextCMD != NULL)
+      	{
+      	  printf("\nstill going");
+      	  cursor = cursor->nextCMD;
+      	}
+
+    }
+
+}
+
+
 
 // Finds commands in a string
 char *findCMDs(char input[])
@@ -51,11 +98,12 @@ char *findCMDs(char input[])
   static char result[BUFFERSIZE] = "";
   strcpy(result, "\0");
   char *ptr;
-  
+
   // Look for ECHO
   ptr = strstr(input, "echo ");
   if(ptr != NULL)
-    strcat(result, "  echo");
+    addToList("echo", input);
+    /* strcat(result, "  echo"); */
     
   // Look for "cat"
   ptr = strstr(input, "cat ");
@@ -77,11 +125,11 @@ char *findCMDs(char input[])
   if(ptr != NULL)
     strcat(result, "  cd");
 
-
   return result;
 }
 
 
+// Main
 int main()
 {
   init_shell();
@@ -119,6 +167,7 @@ int main()
 	{
 	  char *foundCMD = findCMDs(buff);
 	  printf("\nCommands:%s", foundCMD);
+	  /* executeCMDs(buff, foundCMDs); */
 	} else {
 	printf("\nCommand '%s' not found", buff);
       }
