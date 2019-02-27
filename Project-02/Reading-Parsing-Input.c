@@ -36,20 +36,6 @@ void init_shell()
 
 }
 
-
-// Adds newest command to linked list
-struct command *finder(struct command* prev, char CMD[LONGEST_CMD_LEN])
-{
-  // Create list obj to return and allocate memory
-  struct command* found = NULL;
-  found = (struct command*)malloc(sizeof(struct command));
-
-  strcpy(found->commandName, CMD);
-  prev->nextCMD = found;
-
-  return found;
-}
-
 // Add command to linked list
 void addToList(char cmd[LONGEST_CMD_LEN], char input[BUFFERSIZE])
 {  
@@ -66,12 +52,13 @@ void addToList(char cmd[LONGEST_CMD_LEN], char input[BUFFERSIZE])
     }
 
   // Create object
-  struct command *add;
+  struct command *add = NULL;
   add = (struct command *)malloc(sizeof(struct command));
   
   strcpy(add->commandName, cmd);
   strcpy(add->argument, arg);
-  /* // Check whether head was initialized */
+
+  // Check whether head was initialized
   if(head == NULL)
     head = add;
   else
@@ -79,12 +66,11 @@ void addToList(char cmd[LONGEST_CMD_LEN], char input[BUFFERSIZE])
       struct command *cursor;
       cursor = (struct command *)malloc(sizeof(struct command));
       cursor = head;
-      printf("\nafter that");
+
+      // Move to end of list
       while(cursor->nextCMD != NULL)
-      	{
-      	  printf("\nstill going");
       	  cursor = cursor->nextCMD;
-      	}
+      cursor->nextCMD = add;
 
     }
 
@@ -103,27 +89,26 @@ char *findCMDs(char input[])
   ptr = strstr(input, "echo ");
   if(ptr != NULL)
     addToList("echo", input);
-    /* strcat(result, "  echo"); */
     
   // Look for "cat"
   ptr = strstr(input, "cat ");
   if(ptr != NULL)
-    strcat(result, "  cat");
+    addToList("cat", input);    
 
   // Look for "man info"
   ptr = strstr(input, "man info ");
   if(ptr != NULL)
-    strcat(result, "  man info");
+    addToList("man info", input);
 
   // Look for "xterm"
   ptr = strstr(input, "xterm ");
   if(ptr != NULL)
-    strcat(result, "  xterm");
+    addToList("xterm", input);
 
   // Look for "cd"
   ptr = strstr(input, "cd ");
   if(ptr != NULL)
-    strcat(result, "  cd");
+    addToList("cd", input);
 
   return result;
 }
@@ -133,19 +118,6 @@ char *findCMDs(char input[])
 int main()
 {
   init_shell();
-  
-  // Test declaration of struct:
-  struct command* t1 = NULL;
-  struct command* t2 = NULL;
-  struct command* t3 = NULL;
-
-  // Allocate memory for objects
-  t1 = (struct command*)malloc(sizeof(struct command));
-  t2 = (struct command*)malloc(sizeof(struct command));
-  t3 = (struct command*)malloc(sizeof(struct command));
-
-  t2 = finder (t1, "cmd1");
-  t3 = finder (t2, "cmd2");
 
   //String where user input is stored
   char buff[BUFFERSIZE];
@@ -166,11 +138,21 @@ int main()
 	 strstr(buff, "cd") != NULL)
 	{
 	  char *foundCMD = findCMDs(buff);
-	  printf("\nCommands:%s", foundCMD);
-	  /* executeCMDs(buff, foundCMDs); */
-	} else {
+
+	  // Print commands	 
+	  struct command *cursor;
+	  cursor = (struct command *)malloc(sizeof(struct command));
+	  cursor = head;
+	  printf("\n---------------------------------------------");
+	  printf("\n Commands: ");
+	  do
+	    {
+	      printf("  %s", cursor->commandName);
+	      cursor = cursor->nextCMD;
+	    } while (cursor->nextCMD != NULL);
+	}
+      else
 	printf("\nCommand '%s' not found", buff);
-      }
     }
 
   return(0);      
