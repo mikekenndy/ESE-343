@@ -7,6 +7,11 @@
 #define BUFFERSIZE 500
 #define LONGEST_CMD_LEN 7
 
+// Commands recognized
+char *COMMANDS[] =
+  {"echo", "cat", "man info", "xterm", "cd", "ls"};
+int numCMDs = sizeof(COMMANDS)/sizeof(COMMANDS[0]);
+
 // Linked-list object containing:
 // commandName - name of command entered into terminal
 // argument - argument following command
@@ -79,42 +84,48 @@ void addToList(char cmd[LONGEST_CMD_LEN], char input[BUFFERSIZE])
 
 
 // Finds commands in a string
-char *findCMDs(char input[])
+void findCMDs(char input[])
 {
-  static char result[BUFFERSIZE] = "";
-  strcpy(result, "\0");
+  // Look for known commands and add to list if found
   char *ptr;
+  for(int i = 0; i < numCMDs; i++)
+    {
+      ptr = strstr(input, COMMANDS[i]);
+      if (ptr != NULL)
+	addToList(COMMANDS[i], input);
+    }
+}
 
-  // Look for ECHO
-  ptr = strstr(input, "echo ");
-  if(ptr != NULL)
-    addToList("echo", input);
-    
-  // Look for "cat"
-  ptr = strstr(input, "cat ");
-  if(ptr != NULL)
-    addToList("cat", input);    
-
-  // Look for "man info"
-  ptr = strstr(input, "man info ");
-  if(ptr != NULL)
-    addToList("man info", input);
-
-  // Look for "xterm"
-  ptr = strstr(input, "xterm ");
-  if(ptr != NULL)
-    addToList("xterm", input);
-
-  // Look for "cd"
-  ptr = strstr(input, "cd ");
-  if(ptr != NULL)
-    addToList("cd", input);
-
-  return result;
+// Check to see if string contains any commands
+int containsCMD(char str[])
+{
+  char *ptr;
+  for(int i = 0; i < numCMDs; i++)
+    {
+      ptr = strstr(str, COMMANDS[i]);
+      if (ptr != NULL)
+	return 1;
+    }
+  return 0;
 }
 
 
-// Main
+// Delete linked list
+void deleteList(struct command** start)
+{
+  struct command* current = *start;
+  struct command* next;
+  while (current != NULL)
+    {
+      next = current->nextCMD;
+      free(current);
+      current=next;
+    }
+  *start = NULL;
+}
+
+
+// --Main--
 int main()
 {
   init_shell();
@@ -125,19 +136,17 @@ int main()
   // Continually get user input
   while(1)
     {
+      deleteList(&head);
       printf("\n>>> ");
       fgets(buff, BUFFERSIZE, stdin);
       //Remove trailing \n character
       buff[strcspn(buff, "\n")] = 0;
 
       // Search for commands
-      if(strstr(buff, "echo ") != NULL ||
-	 strstr(buff, "cat ") != NULL ||
-	 strstr(buff, "man info ") != NULL ||
-	 strstr(buff, "xterm & ") != NULL ||
-	 strstr(buff, "cd") != NULL)
+      if(containsCMD(buff))
 	{
-	  char *foundCMD = findCMDs(buff);
+	  // Find commands and add to linked-list
+	  findCMDs(buff);
 
 	  // Print commands	 
 	  struct command *cursor;
@@ -145,11 +154,22 @@ int main()
 	  cursor = head;
 	  printf("\n---------------------------------------------");
 	  printf("\n Commands: ");
-	  do
+	  while (cursor->nextCMD != NULL)
 	    {
 	      printf("  %s", cursor->commandName);
 	      cursor = cursor->nextCMD;
-	    } while (cursor->nextCMD != NULL);
+	    }
+	  printf("  %s", cursor->commandName);
+
+	  // Print args
+	  cursor = head;
+	  while (cursor->nextCMD != NULL)
+	    {
+	      printf("\n %s: %s", cursor->commandName, cursor->argument);
+	      cursor = cursor->nextCMD;
+	    }
+	  printf("\n %s: %s", cursor->commandName, cursor->argument);
+	  printf("\n---------------------------------------------\n");
 	}
       else
 	printf("\nCommand '%s' not found", buff);
