@@ -51,14 +51,13 @@ struct queue *q;
 
 void printQueue(struct queue q)
 {
-  printf("\nIn printQueue()\n");
-  printf("head id: %d\n", q.head->id);
   struct node * cursor = q.head;
 
-  // Test code to print first 10 nodes
-  for(int i = 1; i <= 10; i++)
+  // Traverse queue until end is reached
+  while(cursor != NULL)
     {
-      printf("cursor id: %d\n", cursor->id);
+      printf("\nCursor id: %d\n", cursor->id);
+      printf("arrival_time: %d\tservice_time: %d\n", cursor->p->arrival_time, cursor->p->service_time);
       cursor = cursor->next;
     }
 }
@@ -68,24 +67,12 @@ void enqueue(struct queue * q, struct node * newNode)
   // Create queue if it is empty
   if(q->tail == NULL)
     {
-      printf("Making first node\n");
       q->head = q->tail = newNode;
       return;
     }
 
   // Add new node at the end of the queue and change tail
   q->tail = q->tail->next = newNode;
-
-  if(newNode->id == 2)
-    printf("head.next points to %d\n", q->head->next->id);
-  if(newNode->id == 3)
-    printf("head.next points to %d\n", q->head->next->next->id);
-  
-  printf("head: %d\n", q->head->id);
-  printf("head service_time: %d\n", q->head->p->service_time);
-  printf("tail: %d\n", q->tail->id);
-  printf("tail service_time: %d\n", q->tail->p->service_time);
-
 }
 
 void read_file()
@@ -125,17 +112,15 @@ void read_file()
     */
     
     
-    // Create new process
-    printf("\nMake process %s\n", name);
+    // Create new node and accompanying process
     newProc = (struct process*) malloc(sizeof(struct process));
-    printf("proc\n");
     newNode = (struct node*) malloc(sizeof(struct node));
-    printf("node\n");
-    strcpy(newProc->process_ID, name);
-    printf("strcpy\n");
-    
     newProc->service_time = atoi(service_time);
     newProc->arrival_time = atoi(arrival_time);
+    
+    // Allocate mem for process variables
+    newProc->process_ID = (char*) malloc(15 * sizeof(char));
+    strcpy(newProc->process_ID, name);
     
     // Assign new process to node
     newNode->p = newProc;
@@ -146,11 +131,6 @@ void read_file()
     increment++;
   }
   fclose(file);
-  
-  printf("\nqueue head: %d\n", list->head->id);
-  printf("next: %d\n", list->head->next->id);
-  printf("queue tail: %d\n", list->tail->id);
-  //    printQueue(*list);
   
   return;    
 }
