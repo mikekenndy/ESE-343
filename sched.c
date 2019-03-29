@@ -50,6 +50,8 @@ int quantum; // the amount of time in milliseconds a process can run on a core b
 struct computer computer;
 struct queue *q;
 
+
+// Print formatted list of all nodes in queue 
 void printQueue(struct queue q)
 {
   struct node * cursor = q.head;
@@ -57,19 +59,22 @@ void printQueue(struct queue q)
   // Traverse queue until end is reached
   while(cursor != NULL)
     {
-      printf("\nCursor %s:\n", cursor->p->process_ID);
+      printf("Cursor %s:\n", cursor->p->process_ID);
       printf("arrival_time: %d\tservice_time: %d\n", cursor->p->arrival_time, cursor->p->service_time);
+      printf("----------\n");
       cursor = cursor->next;
     }
 }
 
+
+// Create node to house process and add it to queue
 void enqueue(struct queue * q, struct process * newProc)
 {
   // Create new node to point to newProc
   struct node * newNode = (struct node*) malloc(sizeof(struct node));
   newNode->p = newProc;
-  
-  // Create queue if it is empty
+
+   // Create queue if it is empty
   if(q->tail == NULL)
     {
       q->head = q->tail = newNode;
@@ -78,10 +83,22 @@ void enqueue(struct queue * q, struct process * newProc)
 
   // Add new node at the end of the queue and change tail
   q->tail = q->tail->next = newNode;
+  q->tail->next = NULL;
 }
 
-// Remove process from queue
-void rm_from_queue(struct queue * q, struct process * p)
+
+// Move first process in queue to back 
+void moveHeadToBack(struct queue * q)
+{
+  struct node * cursor = malloc(sizeof(struct node));
+  cursor->p = q->head->p;
+  cursor->next = NULL;
+  q->head = q->head->next;
+  enqueue(q, cursor->p);
+}
+
+// Move process to back of queue
+void rmFromQueue(struct queue * q, struct process * p)
 {
   // Ensure queue is not empty and create cursor nodes
   struct node * cursor = q->head;
@@ -91,16 +108,11 @@ void rm_from_queue(struct queue * q, struct process * p)
     {
       printf("ERROR: EMPTY QUEUE\n");
       return;
-    }
+    }  
   
   // Check whether head is desired process
   if(q->head->p == p)
     {
-      if(q->head->next == NULL)
-	{
-	  free(q->head);
-	  free(q);
-	}
       cursor = cursor->next;
       free(q->head);
       q->head = cursor;
@@ -108,15 +120,15 @@ void rm_from_queue(struct queue * q, struct process * p)
     }
   
   // Scan queue for process
-  cursor=cursor->next;
+  cursor = cursor->next;
   while(cursor != NULL)
     {
       if(cursor->p == p)
-	{
+  	{
 	  prevNode->next = cursor->next;
 	  free(cursor);
-	  return;
-	}
+  	  return;
+  	}
       prevNode = prevNode->next;
       cursor = cursor->next;
     }
@@ -185,7 +197,7 @@ void run_one_step()
 {
   int i;
   computer.time++;
-  printf("Processing all 4 cores, current Computer time=%lu \n",computer.time);
+  printf("\nProcessing all 4 cores, current Computer time=%lu \n",computer.time);
   for(i=0;i<4;i++)
     {
       if(computer.cores[i].busy)
@@ -276,7 +288,7 @@ void sched_proc(struct process * p, int core_id)
 
 void remove_proc(int core_id)
 {
-  printf("Process[%s] at core %d has been removed from core with remaining service_time=%d\n",
+  printf("\nProcess[%s] at core %d has been removed from core with remaining service_time=%d\n",
 	 computer.cores[core_id].p->process_ID,
 	 core_id,
 	 computer.cores[core_id].p->service_time);
@@ -284,11 +296,13 @@ void remove_proc(int core_id)
   // if the process has finished all its service time, terminate and clean up
   if(computer.cores[core_id].p->service_time<=0)
     {
+      rmFromQueue(computer.q, computer.cores[core_id].p);
       computer.cores[core_id].busy=0;
       // free up allocated memory for process ID and struct upon termination of a process
       free(computer.cores[core_id].p->process_ID);
       free(computer.cores[core_id].p);
       computer.cores[core_id].proc_time=0;
+
     }
   
   // if the process needs to run for more time, put it back into the queue for future scheduling
@@ -297,8 +311,9 @@ void remove_proc(int core_id)
       computer.cores[core_id].proc_time=0;
       
       // reinsert back to the queue
-      enqueue(computer.q, computer.cores[core_id].p);
-      rm_from_queue(computer.q, computer.cores[core_id].p);
+      moveHeadToBack(computer.q);
+      computer.cores[core_id].busy = 0;
+      computer.cores[core_id].proc_time=0;
     }
 }
 
@@ -383,14 +398,56 @@ void init()
   quantum = 20;
 }
 
+int firstOpenCore()
+{
+  int i;
+  for(i = 0; i < 4; i++)
+    if(computer.cores[i].busy == 0)
+      return i;
+  return -1;
+}
+
 int main()
 {
   init();
   //  printf("\t*******Starting Demo*******\n");
   //  demo();
   printf("\t*******Reading Input*******\n");
-  read_file(); 
+  read_file();
+
+  printf("\t*******Scheduling Processes*******\n");
+
+  // Variables used to run simulation
+  struct node * scheduler = computer.q->head;
+
+  int open;
+  for(int i = 0; i < 500; i++)
+    {
+      // Fill open cores with a process
+      open = firstOpenCore();
+      while(open != -1)
+	{
+	  sched_proc(scheduler->p, open);
+	  scheduler = scheduler->next;
+	  open = firstOpenCore();
+	}
+
+      // Replace process if necessary (quantum or finished)
+      for(int i = 0; i < 4; i++)
+	if(computer.cores[i].proc_time >= quantum ||
+	   computer.cores[i].p->io == 1 ||
+	   computer.cores[i].p->service_time <= 0)
+	  remove_proc(i);
+
+      run_one_step();
+      scheduler = computer.q->head;
+    }
+
   
+  /* sched_proc(computer.q->head->p, 0); */
+  /* sched_proc(computer.q->head->next->p, 1); */
+  /* for(int i = 0; i < 25; i++) */
+  /*   run_one_step(); */
   
   /* your code goes here for part2. In part 2, you create one node for each process, and put them on an 
    * 'upcoming process' queue first. Then your code calls run_one_step(), for each process whose arrival time
